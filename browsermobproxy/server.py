@@ -4,6 +4,7 @@ import signal
 import socket
 import subprocess
 import time
+import psutil
 
 import sys
 
@@ -152,11 +153,22 @@ class Server(RemoteServer):
         if self.process.poll() is not None:
             return
 
-        group_pid = os.getpgid(self.process.pid) if not self.win_env else self.process.pid
         try:
+            cmd_process = psutil.Process(self.process.pid)
+            childs_process = cmd_process.children(recursive=True)
+
+            print('child process:')
+            print(childs_process)
+
+            try:
+                for child in childs_process:
+                    child.kill()
+            except Exception as e:
+                print(e)
+
             self.process.kill()
             self.process.wait()
-            os.killpg(group_pid, signal.SIGINT)
+
         except AttributeError:
             # kill may not be available under windows environment
             pass
